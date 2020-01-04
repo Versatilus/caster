@@ -17,7 +17,8 @@ import tomlkit
 from castervoice.lib.clipboard import Clipboard
 from castervoice.lib import printer
 from castervoice.lib.util import guidance
-from pathlib2 import Path
+
+from castervoice.lib.util.pathlib import Path
 
 try:
     import win32gui

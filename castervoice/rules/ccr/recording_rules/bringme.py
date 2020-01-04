@@ -3,7 +3,8 @@ import shlex
 import threading
 import time
 from subprocess import Popen
-from pathlib2 import Path
+
+from castervoice.lib.util.pathlib import Path
 
 from dragonfly import Function, Choice, Dictation, ContextAction
 from castervoice.lib.context import AppContext

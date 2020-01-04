@@ -6,7 +6,6 @@ import re
 import sys
 import threading
 from ctypes import *
-from pathlib2 import Path
 from dragonfly import monitors
 
 try:  # Style C -- may be imported into Caster, or externally
@@ -17,6 +16,8 @@ finally:
     from castervoice.asynch.mouse.grids import TkTransparent, Dimensions
     from castervoice.lib import gdi, settings, utilities
     settings.initialize()
+
+from castervoice.lib.util.pathlib import Path
 
 try:
     from PIL import ImageGrab, ImageFilter, Image

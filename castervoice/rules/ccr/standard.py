@@ -31,21 +31,21 @@ class SymbolSpecs(object):
 
     IMPORT = "import"
 
-    FUNCTION = "function"
-    CLASS = "class"
+    FUNCTION = "define function"
+    CLASS = "define class"
 
     COMMENT = "add comment"
     LONG_COMMENT = "long comment"
 
-    NULL = "value not"
+    NULL = "value (not|null)"
 
-    RETURN = "return"
+    RETURN = "return [from] function"
 
     TRUE = "value true"
     FALSE = "value false"
 
     # not part of the programming standard:
-    CANCEL = "(terminate | escape | exit | cancel)"
+    CANCEL = "(terminate | escape | cancel)"
 
     @staticmethod
     def set_cancel_word(spec):

@@ -1,5 +1,9 @@
-from dragonfly import ActionBase, Paste
-from castervoice.lib import context
+# -*- coding: utf-8 -*-
+
+from __future__ import  print_function, division, unicode_literals
+import time
+from dragonfly import ActionBase, Clipboard, Paste
+from castervoice.lib import context, settings
 from castervoice.lib.actions import Text, Key
 '''
 Stores the currently highlighted text in a temporary variable,
@@ -45,17 +49,18 @@ class Store(ActionBase):
 
     def _execute(self, data=None):
         global _TEMP
-        _, orig = context.read_selected_without_altering_clipboard(False)
+        _, orig = context.read_selected_without_altering_clipboard(True)
         text = orig.replace(" ", self.space) if orig else ""
         _TEMP = text.replace("\n", "") if self.remove_cr else text
         return True
 
 
 class Retrieve(ActionBase):
-    def __init__(self, action_if_no_text="", action_if_text=""):
+    def __init__(self, action_if_no_text="", action_if_text="", paste_action=Key("c-v")):
         ActionBase.__init__(self)
         self.action_if_no_text = action_if_no_text
         self.action_if_text = action_if_text
+        self.paste_action = paste_action
 
     @classmethod
     def text(cls):
@@ -63,8 +68,12 @@ class Retrieve(ActionBase):
 
     def _execute(self, data=None):
         output = _TEMP
-        Paste(output).execute()
         if output:
+            original_text = Clipboard.get_system_text()
+            Clipboard.set_system_text(output)
+            self.paste_action.execute()
+            time.sleep(settings.SETTINGS["miscellaneous"]["keypress_wait"]/1000)
+            Clipboard.set_system_text(original_text)
             Key(self.action_if_text).execute()
         else:
             Key(self.action_if_no_text).execute()

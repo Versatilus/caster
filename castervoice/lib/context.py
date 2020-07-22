@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import  print_function, division, unicode_literals
+from numbers import Real
 import time
 
 from dragonfly import AppContext, Pause
@@ -5,6 +9,12 @@ from dragonfly import AppContext, Pause
 from castervoice.lib import utilities, settings
 from castervoice.lib.actions import Key
 from castervoice.lib.clipboard import Clipboard
+try:
+    from win32clipboard import GetClipboardSequenceNumber
+except ImportError:
+    def GetClipboardSequenceNumber():
+        return 0
+
 
 # Override dragonfly.AppContext with aenea.ProxyAppContext if the 'use_aenea'
 # setting is set to true.
@@ -14,6 +24,22 @@ if settings.settings(["miscellaneous", "use_aenea"]):
     except ImportError:
         print("Unable to import aenea.ProxyAppContext. dragonfly.AppContext "
               "will be used instead.")
+
+
+def act_and_wait_for_clipboard_change(action=Key("c-c"), pause_time=0):
+    
+    initial_sequence_number = GetClipboardSequenceNumber()
+    start_time = time.time()
+    action.execute()
+    current_sequence_number = GetClipboardSequenceNumber()
+    elapsed_time = time.time() - start_time
+    clipboard_changed = (current_sequence_number != initial_sequence_number and current_sequence_number != 0)
+    while not clipboard_changed and elapsed_time <= pause_time:
+        current_sequence_number = GetClipboardSequenceNumber()
+        clipboard_changed = (current_sequence_number != initial_sequence_number and current_sequence_number != 0)
+        elapsed_time = time.time() - start_time
+    print("\nkeypress time: {}\ncurrent sequence: {}\ninitial sequence: {}\n".format(elapsed_time,current_sequence_number, initial_sequence_number))
+    return clipboard_changed
 
 
 def _target_is_character(target):
@@ -104,30 +130,31 @@ def read_nmax_tries(n, slp=0.1):
         time.sleep(slp)
 
 
-def read_selected_without_altering_clipboard(same_is_okay=False, pause_time="0"):
+def read_selected_without_altering_clipboard(same_is_okay=False, pause_time=None, action=Key("c-c")):
     '''Returns a tuple:
     (0, "text from system") - indicates success
     (1, None) - indicates no change
     (2, None) - indicates clipboard error
     '''
 
-    time.sleep(settings.SETTINGS["miscellaneous"]["keypress_wait"]/
-               1000.)  # time for previous keypress to execute
+    if pause_time is None:
+        pause_time = settings.SETTINGS["miscellaneous"]["keypress_wait"]/1000
+    elif not isinstance(pause_time, Real):
+        pause_time = float(pause_time)/100
     cb = Clipboard(from_system=True)
     temporary = None
-    prior_content = None
+    prior_content = cb.text or ""
     max_tries = 20
 
     for i in range(0, max_tries):
         failure = False
         try:
-            prior_content = Clipboard.get_system_text()
+            # prior_content = Clipboard.get_system_text()
             Clipboard.set_system_text("")
-            Key("c-c").execute()
-            Pause(pause_time).execute()
-            time.sleep(settings.SETTINGS["miscellaneous"]["keypress_wait"]/
-                       1000.)  # time for keypress to execute
+            time.sleep(0.02)        
+            act_and_wait_for_clipboard_change(action, pause_time)
             temporary = Clipboard.get_system_text()
+            time.sleep(0.02)
             cb.copy_to_system()
         except Exception:
             print("Clipboard Read Attempts " + str(i))  # Debugging
@@ -159,7 +186,7 @@ def paste_string_without_altering_clipboard(content, pause_time="1"):
             Pause(pause_time).execute()
             Key("c-v").execute()
             time.sleep(settings.SETTINGS["miscellaneous"]["keypress_wait"]/
-                       1000.)  # time for keypress to execute
+                       1000)  # time for keypress to execute
             cb.copy_to_system()
         except Exception:
             print("Clipboard Write Attempts " + str(i))  # Debugging
@@ -175,8 +202,8 @@ def paste_string_without_altering_clipboard(content, pause_time="1"):
 def fill_within_line(target):
     result = navigate_to_character("left", str(target), True)
     if result:
-        from castervoice.lib.ctrl import nexus
-        nexus.state.terminate_asynchronous(True) # pylint: disable=no-member
+        from castervoice.lib.control import nexus
+        nexus().state.terminate_asynchronous(True)
     return result
 
 
